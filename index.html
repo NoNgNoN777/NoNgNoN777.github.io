@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>เว็บแรก</title>
+</head>
+
+<body class>
+    <h1 class="text-3xl font-bold text-center my-class">Hello world</h1>
+    <h2 class="text-2xl font-bold text-center my-class">ยินดีต้อนรับสู่เว็บแรกของผม</h2>
+    <h3 class="p">สวัสดีครับ นี่คือเว็บแรกของผมที่ใช้ Tailwind CSS
+        ในการออกแบบครับผมหวังว่าคุณจะชอบมันนะครับ </h3>
+    <h4 class="p">ผมได้เรียนรู้การใช้ Tailwind CSS ในการสร้างเว็บนี้
+        และผมคิดว่ามันเป็นเครื่องมือที่ดีมากในการออกแบบเว็บที่สวยงามและตอบสนองได้ดีครับ</h4>
+
+    <a href="https://www.google.com"
+        class="text-4xl font-bold text-blue-500 hover:underline justify-center items-center flex">
+        ไปที่ Google
+    </a>
+
+    <a href="index2.html" class="text-4xl font-bold text-blue-500 hover:underline justify-center items-center flex"
+        target="_blank">
+        ไปที่เว็บที่สอง
+    </a>
+
+    <div class="container">
+        <img src="https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg" alt="Image"
+            class="w-1/2 h-auto" />
+    </div>
+    <div class="flex justify-center items-center h-screen ">
+    <video controls class="w-1/2 h-auto">
+        <source src="Bee.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    </div>
+</body>
+
+</html>
+<style>
+    h1 {
+        font-size: 24px;
+        color: blue;
+        text-align: center;
+    }
+
+    .my-class {
+        background-color: #80d1ee;
+        padding: 10px;
+        border: 1px solid black;
+
+    }
+
+    .p {
+        font-size: 16px;
+        color: black;
+        text-indent: 10px;
+        padding: 10px;
+    }
+
+    .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        /* ระยะห่างระหว่างลูกของ container */
+        padding: 12px;
+        /* ระยะขอบภายใน */
+        min-height: 60vh;
+        /* ปรับเป็น 100vh ถ้าต้องการเต็มจอ */
+        margin-left: 70px;
+    }
+</style>;
