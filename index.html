@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <title>VanillaFlow Calendar</title>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center py-4 px-2 md:py-10 md:px-4">
+    
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-6xl p-4 md:p-10 relative">
+        
+        <div class="flex justify-between items-center mb-6">
+            
+            <button id="prevMonth"
+                class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg transition-colors duration-200 text-lg md:text-xl">
+                &#8592;
+            </button>
+
+            <div class="flex flex-col items-center">
+                <div id="calendarTitle" class="text-xl md:text-3xl font-bold text-gray-800 mb-2 text-center">VanillaFlow Calendar</div>
+                
+                <div class="relative flex flex-col items-center">
+                    <button id="yearDropdownBtn"
+                        class="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 w-32 md:w-40 flex justify-between items-center shadow-sm hover:bg-gray-50 transition text-sm md:text-base">
+                        <span id="selectedYearText">2569</span>
+                        <span class="text-xs">▼</span>
+                    </button>
+
+                    <div id="yearDropdownPanel"
+                        class="hidden absolute top-full mt-1 w-40 md:w-48 bg-white border border-gray-200 rounded-md shadow-xl z-50">
+                        <div class="p-2 border-b border-gray-100 bg-gray-50">
+                            <input type="text" id="yearSearchInput"
+                                class="w-full px-2 py-1 border border-gray-300 rounded text-sm outline-none focus:border-blue-500"
+                                placeholder="ค้นหาปี...">
+                        </div>
+                        <ul id="yearList" class="max-h-48 overflow-y-auto text-sm"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <button id="nextMonth"
+                class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg transition-colors duration-200 text-lg md:text-xl">
+                &#8594;
+            </button>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1 md:gap-2 mb-2 text-center">
+            <div class="text-red-500 font-semibold text-sm md:text-xl">Sun</div>
+            <div class="text-gray-500 font-semibold text-sm md:text-xl">Mon</div>
+            <div class="text-gray-500 font-semibold text-sm md:text-xl">Tue</div>
+            <div class="text-gray-500 font-semibold text-sm md:text-xl">Wed</div>
+            <div class="text-gray-500 font-semibold text-sm md:text-xl">Thu</div>
+            <div class="text-gray-500 font-semibold text-sm md:text-xl">Fri</div>
+            <div class="text-blue-500 font-semibold text-sm md:text-xl">Sat</div>
+        </div>
+
+        <div class="mb-4 p-3 bg-gray-50 rounded-xl shadow-inner border border-gray-200 flex flex-wrap justify-center items-center gap-3 md:gap-6 text-xl md:text-2xl">
+            <span draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '🎂')" class="cursor-grab hover:scale-125 transition-transform">🎂</span>
+            <span draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '✈️')" class="cursor-grab hover:scale-125 transition-transform">✈️</span>
+            <span draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '💻')" class="cursor-grab hover:scale-125 transition-transform">💻</span>
+            <span draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '⚽')" class="cursor-grab hover:scale-125 transition-transform">⚽</span>
+            <span draggable="true" ondragstart="event.dataTransfer.setData('text/plain', '💰')" class="cursor-grab hover:scale-125 transition-transform">💰</span>
+
+            <div class="w-px h-6 md:h-8 bg-gray-300 mx-1 md:mx-2"></div> 
+            
+            <img src="https://cdn-icons-png.flaticon.com/512/190/190411.png" draggable="true" ondragstart="event.dataTransfer.setData('text/uri-list', this.src)" class="w-6 h-6 md:w-8 md:h-8 cursor-grab hover:scale-125 transition-transform" alt="ดาว">
+            <img src="https://cdn-icons-png.flaticon.com/512/753/753313.png" draggable="true" ondragstart="event.dataTransfer.setData('text/uri-list', this.src)" class="w-6 h-6 md:w-8 md:h-8 cursor-grab hover:scale-125 transition-transform" alt="หัวใจ">
+            <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiRXMH4gerfTjPfELxmhJkT96mZPT0cprNmooJ5tPH4K9vYMJVXzdrf84PcLk5zpikgPhv6iSuCEJoGUS_DxjuG9F9fhibokxVQGNJtGINq_lsKZl3fNlbl6AX-ZPZ67d8cd4zBemwq3lf7cKxma1PLJA2H3UD6uy2KCHgCJTXXDgI3mQGNL7P0j_eVeg/s400/title.gif" draggable="true" ondragstart="event.dataTransfer.setData('text/uri-list', this.src)" class="w-auto h-6 md:h-8 cursor-grab hover:scale-125 transition-transform" alt="บิน">
+            <img src="https://substackcdn.com/image/fetch/$s_!8Vxf!,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fbucketeer-e05bbc84-baa3-437e-9518-adb32be77984.s3.amazonaws.com%2Fpublic%2Fimages%2F090cbb04-9222-46a7-b944-9bd561101cff_780x520.gif" draggable="true" ondragstart="event.dataTransfer.setData('text/uri-list', this.src)" class="w-auto h-6 md:h-8 cursor-grab hover:scale-125 transition-transform" alt="หายตัว">
+            <img src="https://i.pinimg.com/originals/df/1a/ff/df1aff8395678d11b99b575f0e3b19d5.gif" draggable="true" ondragstart="event.dataTransfer.setData('text/uri-list', this.src)" class="w-auto h-6 md:h-8 cursor-grab hover:scale-125 transition-transform" alt="นอนหลับ">
+        </div>
+
+        <div id="calendarGrid" class="grid grid-cols-7 gap-1 md:gap-2 text-center"></div>
+        
+        <div class="flex items-center justify-center">
+            <button id="thisMonth"
+                class="mt-6 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 md:py-3 md:px-8 rounded-full shadow-md transition-all duration-200 text-sm md:text-base hover:shadow-lg">
+                กลับเดือนปัจจุบัน
+            </button>
+        </div>
+
+    </div>
+
+    <script src="App.js"></script>
+</body>
+
+</html>
