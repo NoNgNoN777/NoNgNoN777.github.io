@@ -7,6 +7,9 @@ const monthNames = ["มกราคม", "กุมภาพันธ์", "ม
 // ถ้ามี (JSON.parse กลับมา) แต่ถ้าไม่มี (เป็น null) ให้ใช้ปีกกาว่างๆ {} หรือ [] แทน
 let myNotes = JSON.parse(localStorage.getItem('calendarNotes')) || {}; 
 let myEmojis = JSON.parse(localStorage.getItem('calendarEmojis')) || {};
+// ตัวแปรจำว่าตอนนี้เมาส์ชี้อยู่วันไหน (เริ่มต้นเป็นค่าว่าง)
+let hoveredDateKey = null;
+
 // ตารางปฏิทิน
 const calendarGrid = document.getElementById('calendarGrid');
 // อ้างอิงหัวปฏิทิน
@@ -215,6 +218,19 @@ function renderCalendar() {
             }
         });
 
+        // ==========================================
+        // ⭐️  ให้กล่องวันที่คอยรายงานตัวว่าเมาส์ชี้อยู่ไหม
+        // ==========================================
+        dayCell.addEventListener('mouseenter', () => {
+            hoveredDateKey = dateKey; // จำวันที่ที่เมาส์ชี้อยู่
+        });
+        
+        dayCell.addEventListener('mouseleave', () => {
+            if (hoveredDateKey === dateKey) {
+                hoveredDateKey = null; // ลืมวันที่เมื่อเอาเมาส์ออก
+            }
+        });
+
         calendarGrid.appendChild(dayCell);
     }
 }
@@ -301,3 +317,45 @@ function saveData() {
     localStorage.setItem('calendarEmojis', JSON.stringify(myEmojis));
     console.log("บันทึกข้อมูลลง LocalStorage เรียบร้อย!");
 }
+
+// ==========================================
+// ⭐️ ระบบดักจับการกด Ctrl+V (Paste) ทั้งหน้าเว็บ
+// ==========================================
+document.addEventListener('paste', function(e) {
+    // 1. ถ้าไม่ได้ชี้เมาส์ที่กล่องวันที่ไหนเลย ให้ยกเลิกการทำงาน
+    if (!hoveredDateKey) return;
+
+    // 2. ป้องกันไม่ให้เบราว์เซอร์ทำพฤติกรรมวางข้อความแบบปกติ
+    e.preventDefault();
+
+    // 3. ดึงข้อความ/ลิงก์ ที่อยู่ใน Clipboard (ที่ผู้ใช้เพิ่ง Ctrl+C มา)
+    let pastedData = (e.clipboardData || window.clipboardData).getData('text');
+
+    if (pastedData) {
+        let itemToSave = null;
+
+        // เช็คว่าสิ่งที่ก๊อปมาเป็น "ลิงก์รูปภาพ/GIF" หรือไม่? (เช็คจากนามสกุลไฟล์)
+        if (pastedData.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i)) {
+            itemToSave = { type: "image", value: pastedData };
+        } else {
+            // ถ้าไม่ใช่ลิงก์รูป ก็ถือว่าเป็น ข้อความ/อีโมจิ
+            // (ตัดให้เหลือแค่ 2 ตัวอักษรแรก ป้องกันคนก๊อปข้อความยาวๆ มาแปะเป็นสติกเกอร์)
+            itemToSave = { type: "emoji", value: pastedData.substring(0, 2) }; 
+        }
+
+        // 4. บันทึกลงตู้เซฟ (เหมือนระบบลากวางเป๊ะๆ)
+        if (!myEmojis[hoveredDateKey]) myEmojis[hoveredDateKey] = [];
+        
+        if (myEmojis[hoveredDateKey].length < 3) {
+            myEmojis[hoveredDateKey].push(itemToSave);
+            saveData(); // เซฟลง localStorage
+            renderCalendar(); // วาดหน้าจอใหม่
+            
+            // แอบมีลูกเล่นโชว์ข้อความว่าแปะสำเร็จ
+            const Toast = Swal.mixin({ toast: true, position: "bottom-end", showConfirmButton: false, timer: 1500 });
+            Toast.fire({ icon: "success", title: "วางสติกเกอร์สำเร็จ!" });
+        } else {
+            Swal.fire({ icon: 'warning', title: 'เต็มแล้วครับ!', text: 'แปะสติกเกอร์ได้สูงสุด 3 ตัวต่อวัน', confirmButtonColor: '#3b82f6' });
+        }
+    }
+});
