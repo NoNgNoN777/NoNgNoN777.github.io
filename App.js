@@ -3,7 +3,7 @@ let today = new Date();
 
 const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
-// ⭐️ 1. ตอนเปิดเว็บมา ให้ไปแอบดูใน localStorage ก่อนว่ามีของเก่าไหม
+// ⭐️ 1. ตอนเปิดเว็บมา ให้ไปดูใน localStorage ก่อนว่ามีของเก่าไหม
 // ถ้ามี (JSON.parse กลับมา) แต่ถ้าไม่มี (เป็น null) ให้ใช้ปีกกาว่างๆ {} หรือ [] แทน
 let myNotes = JSON.parse(localStorage.getItem('calendarNotes')) || {}; 
 let myEmojis = JSON.parse(localStorage.getItem('calendarEmojis')) || {};
@@ -66,14 +66,14 @@ function renderCalendar() {
 
             itemElem.title = "คลิกเพื่อลบทิ้ง";
 
-            // ระบบคลิกลบทิ้ง (เหมือนเดิมเป๊ะๆ)
+            // ระบบคลิกลบทิ้ง 
             itemElem.addEventListener("click", function(e) {
                 e.stopPropagation(); 
                 myEmojis[dateKey].splice(index, 1);
                 if (myNotes[dateKey] === undefined && myEmojis[dateKey].length === 0) {
                      delete myEmojis[dateKey];
                 }
-                saveData(); // ⭐️ ใส่ตรงนี้! เซฟหลังจากแก้ไขโน้ตเสร็จ
+                saveData(); //  เซฟหลังจากแก้ไขโน้ตเสร็จ
                 renderCalendar();
             });
 
