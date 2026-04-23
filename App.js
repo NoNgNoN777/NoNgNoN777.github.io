@@ -1,3 +1,4 @@
+(function CalendarModule(){
 let currentDate = new Date();
 // Use a getter so "today" is always up-to-date when checked
 function getToday() { return new Date(); }
@@ -25,6 +26,11 @@ function safeSetLocalStorage(key, value) {
 
 let myNotes = safeGetLocalStorage('calendarNotes') || {};
 let myEmojis = safeGetLocalStorage('calendarEmojis') || {};
+let rafId = null;
+function scheduleRender() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => { renderCalendar(); rafId = null; });
+}
 // ตัวแปรจำว่าตอนนี้เมาส์ชี้อยู่วันไหน (เริ่มต้นเป็นค่าว่าง)
 let hoveredDateKey = null;
 
@@ -97,7 +103,7 @@ function renderCalendar() {
                      delete myEmojis[dateKey];
                 }
                 saveData(); //  เซฟหลังจากแก้ไขโน้ตเสร็จ
-                renderCalendar();
+                scheduleRender();
             });
 
             emojiContainer.appendChild(itemElem);
@@ -189,7 +195,7 @@ function renderCalendar() {
                         myNotes[dateKey] = userNote; 
                     }
                     saveData(); // ⭐️ ใส่ตรงนี้! เซฟหลังจากแก้ไขโน้ตเสร็จ
-                    renderCalendar(); 
+                    scheduleRender(); 
                 }
             });
         });
@@ -258,7 +264,7 @@ function renderCalendar() {
                 if (myEmojis[dateKey].length < 3) {
                     myEmojis[dateKey].push(itemToSave); // เซฟ Object ลงไป
                     saveData(); // ⭐️ ใส่ตรงนี้! เซฟหลังจากแก้ไขโน้ตเสร็จ
-                    renderCalendar(); 
+                    scheduleRender(); 
                 } else {
                     Swal.fire({ icon: 'warning', title: 'เต็มแล้วครับ!', confirmButtonColor: '#3b82f6' });
                 }
@@ -284,19 +290,19 @@ function renderCalendar() {
 
 prevMonthBtn.addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
-    renderCalendar();
+    scheduleRender();
 });
 
 nextMonthBtn.addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() + 1);
-    renderCalendar();
+    scheduleRender();
 });
 thisMonthBtn.addEventListener('click', () => {
     currentDate = new Date(); // รีเซ็ตเป็นเดือนปัจจุบัน
-    renderCalendar();
+    scheduleRender();
 });
 
-renderCalendar();
+scheduleRender();
 
 // เอื้อมมือไปจับ Elements ของ Dropdown
 const yearDropdownBtn = document.getElementById('yearDropdownBtn');
@@ -330,7 +336,7 @@ function populateYearDropdown() {
             currentDate.setFullYear(y); // เปลี่ยนปีในระบบ
             selectedYearText.innerText = displayText; // เปลี่ยนข้อความบนปุ่ม
             yearDropdownPanel.classList.add('hidden'); // ปิดกล่อง
-            renderCalendar(); // สั่งวาดปฏิทินตารางด้านล่างใหม่
+            scheduleRender(); // สั่งวาดปฏิทินตารางด้านล่างใหม่
         };
         yearList.appendChild(li);
     }
@@ -396,7 +402,7 @@ document.addEventListener('paste', function(e) {
         if (myEmojis[hoveredDateKey].length < 3) {
             myEmojis[hoveredDateKey].push(itemToSave);
             saveData(); // เซฟลง localStorage
-            renderCalendar(); // วาดหน้าจอใหม่
+            scheduleRender(); // วาดหน้าจอใหม่
             
             // แอบมีลูกเล่นโชว์ข้อความว่าแปะสำเร็จ
             const Toast = Swal.mixin({ toast: true, position: "bottom-end", showConfirmButton: false, timer: 1500 });
@@ -406,3 +412,5 @@ document.addEventListener('paste', function(e) {
         }
     }
 });
+
+})();
