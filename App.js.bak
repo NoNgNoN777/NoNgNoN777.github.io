@@ -1,0 +1,361 @@
+let currentDate = new Date();
+let today = new Date();
+
+const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+// ⭐️ 1. ตอนเปิดเว็บมา ให้ไปดูใน localStorage ก่อนว่ามีของเก่าไหม
+// ถ้ามี (JSON.parse กลับมา) แต่ถ้าไม่มี (เป็น null) ให้ใช้ปีกกาว่างๆ {} หรือ [] แทน
+let myNotes = JSON.parse(localStorage.getItem('calendarNotes')) || {}; 
+let myEmojis = JSON.parse(localStorage.getItem('calendarEmojis')) || {};
+// ตัวแปรจำว่าตอนนี้เมาส์ชี้อยู่วันไหน (เริ่มต้นเป็นค่าว่าง)
+let hoveredDateKey = null;
+
+// ตารางปฏิทิน
+const calendarGrid = document.getElementById('calendarGrid');
+// อ้างอิงหัวปฏิทิน
+const calendarTitle = document.getElementById('calendarTitle');
+// ปุ่มเปลี่ยนเดือน
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
+const thisMonthBtn = document.getElementById('thisMonth');
+
+function renderCalendar() {
+    calendarGrid.innerHTML = ""; // ล้างตารางก่อนวาดใหม่
+
+    let year = currentDate.getFullYear();
+    let month = currentDate.getMonth();
+    // คำนวณวันแรกของเดือน และจำนวนวันทั้งหมด
+    let firstDayIndex = new Date(year, month, 1).getDay();
+    let daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    // อัพเดทชื่อเดือนและปีที่หัวปฏิทิน
+    calendarTitle.innerText = `${monthNames[month]} ${year}`;
+
+    // วาดช่องว่าง (สำหรับวันก่อนหน้าวันที่ 1)
+    for (let i = 0; i < firstDayIndex; i++) {
+        let emptyCell = document.createElement("div");
+        emptyCell.className = "h-full w-full md:h-full md:w- full  text-center rounded-lg ";
+        calendarGrid.appendChild(emptyCell);
+    }
+
+   // วาดตัวเลขวันที่ 1 ถึงวันสุดท้าย
+    for (let day = 1; day <= daysInMonth; day++) {
+        let dayCell = document.createElement("div");
+        let dateKey = `${day}-${month}-${year}`;
+        let existingNote = myNotes[dateKey];
+
+        // ⭐️ 1. ดึงข้อมูล Array ของอิโมจิวันนี้ออกมา (ถ้าไม่มีให้เป็น Array ว่าง)
+        let existingEmojis = myEmojis[dateKey] || [];
+        
+        // ⭐️ 2. สร้างกล่องหลักสำหรับใส่อิโมจิ
+        let emojiContainer = document.createElement("div");
+        emojiContainer.className = "flex gap-1 justify-center mt-1 text-[12px] z-10 relative";
+
+        // ⭐️ 3. วนลูปสร้างของทีละชิ้น และผูกระบบ "คลิกลบทิ้ง"
+        existingEmojis.forEach((itemObj, index) => {
+            let itemElem; // ตัวแปรเก็บ HTML Element
+
+            if (itemObj.type === "image") {
+                // ถ้าเป็นรูป/GIF ให้สร้างแท็ก <img>
+                itemElem = document.createElement("img");
+                itemElem.src = itemObj.value;
+                itemElem.className = "w-auto h-6 object-contain cursor-pointer hover:scale-125 transition-transform hover:opacity-75 rounded";
+            } else {
+                // ถ้าเป็นตัวหนังสือ ให้สร้างแท็ก <span>
+                itemElem = document.createElement("span");
+                itemElem.innerText = itemObj.value;
+                itemElem.className = "cursor-pointer hover:scale-125 transition-transform hover:bg-red-100 rounded-full px-1";
+            }
+
+            itemElem.title = "คลิกเพื่อลบทิ้ง";
+
+            // ระบบคลิกลบทิ้ง 
+            itemElem.addEventListener("click", function(e) {
+                e.stopPropagation(); 
+                myEmojis[dateKey].splice(index, 1);
+                if (myNotes[dateKey] === undefined && myEmojis[dateKey].length === 0) {
+                     delete myEmojis[dateKey];
+                }
+                saveData(); //  เซฟหลังจากแก้ไขโน้ตเสร็จ
+                renderCalendar();
+            });
+
+            emojiContainer.appendChild(itemElem);
+        });
+
+        // --- 1. เตรียมหน้าตากล่องวันที่ ---
+        dayCell.className = "relative h-16 w-full md:h-20 flex flex-col items-center justify-center rounded-lg cursor-pointer transition-colors duration-200 text-center border-2 border-solid";
+        
+        // เช็คว่าเป็น "วันนี้" หรือเปล่า
+        let isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+
+        if (isToday) {
+            dayCell.classList.add("bg-blue-500", "text-white", "font-bold", "shadow-md");
+        } else {
+            dayCell.classList.add("bg-gray-50", "text-gray-700", "hover:bg-blue-100");
+        }
+
+        // --- 2. จัดการเนื้อหาข้างในกล่อง ---
+        if (existingNote) {
+            // ถ้ามีโน้ต ให้โชว์จุดไข่ปลา หรือข้อความสั้นๆ (สีข้อความเปลี่ยนตามสีกรอบวันนี้)
+           let noteColor = isToday ? "text-blue-100" : "text-blue-600";
+            // ยัดแค่วันที่กับข้อความโน้ตไปก่อน
+            dayCell.innerHTML = `<span>${day}</span><span class="text-[10px] ${noteColor} truncate w-full px-1 mt-1 leading-tight">${existingNote}</span>`;
+            // --- ระบบ Hover Tooltip ---
+            dayCell.addEventListener("mouseenter", function() {
+                // เช็คก่อนว่ามี Tooltip อยู่แล้วหรือยัง (กันเด้งซ้ำซ้อน)
+                if (!dayCell.querySelector('.my-tooltip')) {
+                    let tooltip = document.createElement("div");
+                    tooltip.className = "my-tooltip absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded-md shadow-lg z-50 break-words pointer-events-none";
+                    tooltip.innerText = existingNote;
+                    
+                    // สร้างสามเหลี่ยมชี้ลงข้างล่างให้ดูสวยงาม
+                    let arrow = document.createElement("div");
+                    arrow.className = "absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800";
+                    tooltip.appendChild(arrow);
+
+                    dayCell.appendChild(tooltip);
+                }
+            });
+
+            dayCell.addEventListener("mouseleave", function() {
+                let tooltip = dayCell.querySelector('.my-tooltip');
+                if (tooltip) tooltip.remove();
+            });
+
+        } else {
+            // โชว์แค่เลขวันที่
+            dayCell.innerHTML = `<span>${day}</span>`
+        }
+        // ⭐️ นำกล่องอิโมจิที่สร้างเสร็จแล้ว มาต่อท้ายใน dayCell
+        if (existingEmojis.length > 0) {
+            dayCell.appendChild(emojiContainer);
+        }
+
+        // --- 3. ระบบคลิกจดโน้ต (SweetAlert2) ---
+        dayCell.addEventListener("click", function() {
+            // ลบ Tooltip ทิ้งก่อนที่ SweetAlert จะเด้ง (กันค้างบนจอ)
+            let tooltip = dayCell.querySelector('.my-tooltip');
+            if (tooltip) tooltip.remove();
+
+            Swal.fire({
+                title: `จดโน้ต`,
+                html: `วันที่ <b class="text-blue-500">${day} ${monthNames[month]} ${year}</b>`,
+                input: 'textarea', // เปลี่ยนเป็น textarea ให้จดข้อความได้หลายบรรทัด
+                inputValue: existingNote || "", 
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#3b82f6', 
+                cancelButtonColor: '#9ca3af',
+                customClass: {
+                    input: 'text-sm' // ทำให้ฟอนต์ในช่องพิมพ์ไม่ใหญ่เกินไป
+                }
+            }).then((result) => {
+                if (result.isConfirmed) { 
+                    let userNote = result.value;
+
+                    if (userNote.trim() === "") {
+                        delete myNotes[dateKey]; 
+                    } else {
+                        myNotes[dateKey] = userNote; 
+                    }
+                    saveData(); // ⭐️ ใส่ตรงนี้! เซฟหลังจากแก้ไขโน้ตเสร็จ
+                    renderCalendar(); 
+                }
+            });
+        });
+        // ==========================================
+        // ⭐️⭐️ ส่วนที่เพิ่มใหม่: ระบบ Drag and Drop ⭐️⭐️
+        // ==========================================
+
+        // 1. อนุญาตให้วางของทับช่องนี้ได้ (ต้องมี preventDefault ไม่งั้นเบราว์เซอร์จะเด้งห้าม)
+        dayCell.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            // ไฮไลท์กรอบกล่องเวลาลากอิโมจิมาจ่อ
+            dayCell.classList.remove('border-transparent');
+            dayCell.classList.add('border-blue-400', 'bg-blue-50', 'scale-105'); 
+        });
+
+        // 2. เอาไฮไลท์ออกเวลาลากเมาส์หนีไปช่องอื่น
+        dayCell.addEventListener('dragleave', function(e) {
+            if (!isToday) dayCell.classList.add('border-transparent');
+            dayCell.classList.remove('border-blue-400', 'bg-blue-50', 'scale-105');
+        });
+
+        // 3. จังหวะที่ปล่อยเมาส์ (Drop)
+        dayCell.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (!isToday) dayCell.classList.add('border-transparent');
+            dayCell.classList.remove('border-blue-400', 'bg-blue-50', 'scale-105');
+
+            // ลองดึงข้อมูลทั้ง 2 แบบออกมาก่อน
+            let draggedText = e.dataTransfer.getData('text/plain');
+            let draggedImageURL = e.dataTransfer.getData('text/uri-list');
+
+            // สร้าง Object เตรียมเซฟ
+            let itemToSave = null;
+
+            if (draggedImageURL) {
+                // ถ้าเป็นลิงก์รูป (GIF/PNG)
+                itemToSave = { type: "image", value: draggedImageURL };
+            } else if (draggedText) {
+                // ถ้าเป็นตัวหนังสือ (Emoji)
+                itemToSave = { type: "emoji", value: draggedText };
+            }
+
+            if (itemToSave) {
+                if (!myEmojis[dateKey]) myEmojis[dateKey] = [];
+                
+                // จำกัดแค่ 3 ตัวเหมือนเดิม
+                if (myEmojis[dateKey].length < 3) {
+                    myEmojis[dateKey].push(itemToSave); // เซฟ Object ลงไป
+                    saveData(); // ⭐️ ใส่ตรงนี้! เซฟหลังจากแก้ไขโน้ตเสร็จ
+                    renderCalendar(); 
+                } else {
+                    Swal.fire({ icon: 'warning', title: 'เต็มแล้วครับ!', confirmButtonColor: '#3b82f6' });
+                }
+            }
+        });
+
+        // ==========================================
+        // ⭐️  ให้กล่องวันที่คอยรายงานตัวว่าเมาส์ชี้อยู่ไหม
+        // ==========================================
+        dayCell.addEventListener('mouseenter', () => {
+            hoveredDateKey = dateKey; // จำวันที่ที่เมาส์ชี้อยู่
+        });
+        
+        dayCell.addEventListener('mouseleave', () => {
+            if (hoveredDateKey === dateKey) {
+                hoveredDateKey = null; // ลืมวันที่เมื่อเอาเมาส์ออก
+            }
+        });
+
+        calendarGrid.appendChild(dayCell);
+    }
+}
+
+prevMonthBtn.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendar();
+});
+
+nextMonthBtn.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendar();
+});
+thisMonthBtn.addEventListener('click', () => {
+    currentDate = new Date(); // รีเซ็ตเป็นเดือนปัจจุบัน
+    renderCalendar();
+});
+
+renderCalendar();
+
+// เอื้อมมือไปจับ Elements ของ Dropdown
+const yearDropdownBtn = document.getElementById('yearDropdownBtn');
+const yearDropdownPanel = document.getElementById('yearDropdownPanel');
+const yearSearchInput = document.getElementById('yearSearchInput');
+const yearList = document.getElementById('yearList');
+const selectedYearText = document.getElementById('selectedYearText');
+
+// ฟังก์ชันสร้างรายชื่อปี (ย้อนหลัง 10 ปี ไปข้างหน้า 10 ปี)
+function populateYearDropdown() {
+    yearList.innerHTML = '';
+    let currentY = currentDate.getFullYear();
+
+    for (let y = currentY - 10; y <= currentY + 10; y++) {
+        let li = document.createElement('li');
+        let thaiYear = y + 543;
+        let displayText = `${thaiYear} / ${y}`;
+
+        li.innerText = displayText;
+        li.className = "px-3 py-2 cursor-pointer transition-colors";
+
+        // ถ้าเป็นปีที่กำลังเลือกอยู่ ให้ไฮไลท์สีฟ้า
+        if (y === currentDate.getFullYear()) {
+            li.classList.add("bg-blue-500", "text-white");
+        } else {
+            li.classList.add("text-gray-700", "hover:bg-blue-50");
+        }
+
+        // เมื่อคลิกเลือกปี
+        li.onclick = () => {
+            currentDate.setFullYear(y); // เปลี่ยนปีในระบบ
+            selectedYearText.innerText = displayText; // เปลี่ยนข้อความบนปุ่ม
+            yearDropdownPanel.classList.add('hidden'); // ปิดกล่อง
+            renderCalendar(); // สั่งวาดปฏิทินตารางด้านล่างใหม่
+        };
+        yearList.appendChild(li);
+    }
+}
+
+// 1. กดปุ่มเพื่อ เปิด/ปิด กล่อง
+yearDropdownBtn.onclick = () => {
+    yearDropdownPanel.classList.toggle('hidden');
+    populateYearDropdown(); // วาดรายชื่อปีใหม่เผื่อมีการเปลี่ยน
+    yearSearchInput.value = ''; // ล้างช่องค้นหา
+};
+
+// 2. ระบบพิมพ์ค้นหา (Filter)
+yearSearchInput.onkeyup = (e) => {
+    let filterText = e.target.value.toLowerCase();
+    let items = yearList.getElementsByTagName('li');
+
+    // วนลูปเช็คทีละบรรทัดว่ามีตัวเลขที่พิมพ์ไหม
+    for (let item of items) {
+        if (item.innerText.toLowerCase().includes(filterText)) {
+            item.style.display = ""; // โชว์
+        } else {
+            item.style.display = "none"; // ซ่อน
+        }
+    }
+};
+// ฟังก์ชันสำหรับบันทึกข้อมูลลงตู้เซฟ
+function saveData() {
+    // แปลงร่าง Object เป็น String แล้วเก็บเข้าเซฟ
+    localStorage.setItem('calendarNotes', JSON.stringify(myNotes));
+    localStorage.setItem('calendarEmojis', JSON.stringify(myEmojis));
+    console.log("บันทึกข้อมูลลง LocalStorage เรียบร้อย!");
+}
+
+// ==========================================
+// ⭐️ ระบบดักจับการกด Ctrl+V (Paste) ทั้งหน้าเว็บ
+// ==========================================
+document.addEventListener('paste', function(e) {
+    // 1. ถ้าไม่ได้ชี้เมาส์ที่กล่องวันที่ไหนเลย ให้ยกเลิกการทำงาน
+    if (!hoveredDateKey) return;
+
+    // 2. ป้องกันไม่ให้เบราว์เซอร์ทำพฤติกรรมวางข้อความแบบปกติ
+    e.preventDefault();
+
+    // 3. ดึงข้อความ/ลิงก์ ที่อยู่ใน Clipboard (ที่ผู้ใช้เพิ่ง Ctrl+C มา)
+    let pastedData = (e.clipboardData || window.clipboardData).getData('text');
+
+    if (pastedData) {
+        let itemToSave = null;
+
+        // เช็คว่าสิ่งที่ก๊อปมาเป็น "ลิงก์รูปภาพ/GIF" หรือไม่? (เช็คจากนามสกุลไฟล์)
+        if (pastedData.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i)) {
+            itemToSave = { type: "image", value: pastedData };
+        } else {
+            // ถ้าไม่ใช่ลิงก์รูป ก็ถือว่าเป็น ข้อความ/อีโมจิ
+            // (ตัดให้เหลือแค่ 2 ตัวอักษรแรก ป้องกันคนก๊อปข้อความยาวๆ มาแปะเป็นสติกเกอร์)
+            itemToSave = { type: "emoji", value: pastedData.substring(0, 2) }; 
+        }
+
+        // 4. บันทึกลงตู้เซฟ (เหมือนระบบลากวางเป๊ะๆ)
+        if (!myEmojis[hoveredDateKey]) myEmojis[hoveredDateKey] = [];
+        
+        if (myEmojis[hoveredDateKey].length < 3) {
+            myEmojis[hoveredDateKey].push(itemToSave);
+            saveData(); // เซฟลง localStorage
+            renderCalendar(); // วาดหน้าจอใหม่
+            
+            // แอบมีลูกเล่นโชว์ข้อความว่าแปะสำเร็จ
+            const Toast = Swal.mixin({ toast: true, position: "bottom-end", showConfirmButton: false, timer: 1500 });
+            Toast.fire({ icon: "success", title: "วางสติกเกอร์สำเร็จ!" });
+        } else {
+            Swal.fire({ icon: 'warning', title: 'เต็มแล้วครับ!', text: 'แปะสติกเกอร์ได้สูงสุด 3 ตัวต่อวัน', confirmButtonColor: '#3b82f6' });
+        }
+    }
+});
