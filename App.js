@@ -1,12 +1,30 @@
 let currentDate = new Date();
-let today = new Date();
+// Use a getter so "today" is always up-to-date when checked
+function getToday() { return new Date(); }
 
 const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
 
 // ⭐️ 1. ตอนเปิดเว็บมา ให้ไปดูใน localStorage ก่อนว่ามีของเก่าไหม
 // ถ้ามี (JSON.parse กลับมา) แต่ถ้าไม่มี (เป็น null) ให้ใช้ปีกกาว่างๆ {} หรือ [] แทน
-let myNotes = JSON.parse(localStorage.getItem('calendarNotes')) || {}; 
-let myEmojis = JSON.parse(localStorage.getItem('calendarEmojis')) || {};
+// Safe localStorage helpers (wrap in try/catch for privacy mode or errors)
+function safeGetLocalStorage(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key));
+    } catch (e) {
+        console.warn('localStorage read failed for', key, e);
+        return null;
+    }
+}
+function safeSetLocalStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+        console.warn('localStorage write failed for', key, e);
+    }
+}
+
+let myNotes = safeGetLocalStorage('calendarNotes') || {};
+let myEmojis = safeGetLocalStorage('calendarEmojis') || {};
 // ตัวแปรจำว่าตอนนี้เมาส์ชี้อยู่วันไหน (เริ่มต้นเป็นค่าว่าง)
 let hoveredDateKey = null;
 
@@ -34,7 +52,9 @@ function renderCalendar() {
     // วาดช่องว่าง (สำหรับวันก่อนหน้าวันที่ 1)
     for (let i = 0; i < firstDayIndex; i++) {
         let emptyCell = document.createElement("div");
-        emptyCell.className = "h-full w-full md:h-full md:w- full  text-center rounded-lg ";
+        // fixed typo: md:w-full (removed stray space)
+        emptyCell.className = "h-full w-full md:h-full md:w-full text-center rounded-lg";
+        emptyCell.setAttribute('aria-hidden', 'true');
         calendarGrid.appendChild(emptyCell);
     }
 
@@ -85,9 +105,14 @@ function renderCalendar() {
 
         // --- 1. เตรียมหน้าตากล่องวันที่ ---
         dayCell.className = "relative h-16 w-full md:h-20 flex flex-col items-center justify-center rounded-lg cursor-pointer transition-colors duration-200 text-center border-2 border-solid";
-        
-        // เช็คว่าเป็น "วันนี้" หรือเปล่า
-        let isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+
+        // เช็คว่าเป็น "วันนี้" หรือเปล่า (ใช้ getToday() เพื่อให้ค่าอัพเดทเสมอ)
+        let t = getToday();
+        let isToday = (day === t.getDate() && month === t.getMonth() && year === t.getFullYear());
+
+        // Accessibility: make each day focusable and announceable
+        dayCell.setAttribute('role', 'gridcell');
+        dayCell.tabIndex = 0;
 
         if (isToday) {
             dayCell.classList.add("bg-blue-500", "text-white", "font-bold", "shadow-md");
@@ -127,6 +152,9 @@ function renderCalendar() {
             // โชว์แค่เลขวันที่
             dayCell.innerHTML = `<span>${day}</span>`
         }
+        // aria-label to help screen readers (include short note if present)
+        let ariaLabel = `วันที่ ${day} ${monthNames[month]} ${year}` + (existingNote ? `, โน้ต: ${existingNote}` : '');
+        dayCell.setAttribute('aria-label', ariaLabel);
         // ⭐️ นำกล่องอิโมจิที่สร้างเสร็จแล้ว มาต่อท้ายใน dayCell
         if (existingEmojis.length > 0) {
             dayCell.appendChild(emojiContainer);
@@ -164,6 +192,25 @@ function renderCalendar() {
                     renderCalendar(); 
                 }
             });
+        });
+
+        // Keyboard support: Enter opens editor; arrows move focus
+        dayCell.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+                return;
+            }
+            let moved = null;
+            if (e.key === 'ArrowRight') moved = this.nextElementSibling;
+            else if (e.key === 'ArrowLeft') moved = this.previousElementSibling;
+            else if (e.key === 'ArrowDown') {
+                // try to move roughly one week ahead
+                let n = this; for (let i=0;i<7;i++) { if (!n) break; n = n.nextElementSibling; } moved = n;
+            } else if (e.key === 'ArrowUp') {
+                let n = this; for (let i=0;i<7;i++) { if (!n) break; n = n.previousElementSibling; } moved = n;
+            }
+            if (moved && moved.focus) { moved.focus(); }
         });
         // ==========================================
         // ⭐️⭐️ ส่วนที่เพิ่มใหม่: ระบบ Drag and Drop ⭐️⭐️
@@ -312,9 +359,9 @@ yearSearchInput.onkeyup = (e) => {
 };
 // ฟังก์ชันสำหรับบันทึกข้อมูลลงตู้เซฟ
 function saveData() {
-    // แปลงร่าง Object เป็น String แล้วเก็บเข้าเซฟ
-    localStorage.setItem('calendarNotes', JSON.stringify(myNotes));
-    localStorage.setItem('calendarEmojis', JSON.stringify(myEmojis));
+    // แปลงร่าง Object เป็น String แล้วเก็บเข้าเซฟ (ใช้ตัวช่วยที่ปลอดภัย)
+    safeSetLocalStorage('calendarNotes', myNotes);
+    safeSetLocalStorage('calendarEmojis', myEmojis);
     console.log("บันทึกข้อมูลลง LocalStorage เรียบร้อย!");
 }
 
